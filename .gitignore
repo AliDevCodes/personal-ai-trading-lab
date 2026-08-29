@@ -1,0 +1,81 @@
+# ==============================
+# Visual Studio
+# ==============================
+.vs/
+*.user
+*.suo
+*.userosscache
+*.rsuser
+
+# ==============================
+# .NET / C#
+# ==============================
+bin/
+obj/
+TestResults/
+BenchmarkDotNet.Artifacts/
+
+# ==============================
+# Node.js / React / Vite
+# ==============================
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# ==============================
+# Environment / Secrets
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
+# OS generated files
+# ==============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# ==============================
+# Local databases / generated data
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================
+# Certificates / private keys
+# ==============================
+*.pem
+*.key
+*.pfx
