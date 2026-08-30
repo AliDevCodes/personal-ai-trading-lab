@@ -21,3 +21,7 @@ The following facts and preferences were confirmed through the trader interview 
 - Excessive strategy tweaking.
 
 These are interpretations of behavior, not confirmed facts. Validate them through paper trading and observed behavior before treating them as established design inputs. Until then, the UI, journal, and risk workflow may make the relevant behavior visible without assuming it is present.
+
+## Boundary
+
+TraderProfile is user context only: facts, preferences, constraints, and behavioral hypotheses. It does not set or override deterministic risk rules. Versioned, changeable operational assumptions—including risk settings, valuation, markets, and paper-trading settings—belong to TradingConfiguration, not TraderProfile.

@@ -89,6 +89,10 @@ tests/
 - AI: OpenAI API initially, behind the application-owned `IAIProvider` abstraction.
 - Gold and Silver market-data provider: TBD before integration work begins.
 
+## In-app alerts
+
+Basic in-app alerts are confirmed V1 scope. Their implementation mechanism and triggering approach remain TBD until the Solution Blueprint. Do not introduce Domain Events, background queues, or other infrastructure solely to solve alerts before that decision.
+
 ## TBD before implementation design
 
 - Exact module public contracts and dependency relationships.
@@ -96,3 +100,4 @@ tests/
 - Authentication/authorization requirements and API surface.
 - UI client structure and its integration boundary with the API.
 - External provider implementation details.
+- In-app alert mechanism and triggering approach.

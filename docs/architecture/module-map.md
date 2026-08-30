@@ -14,6 +14,7 @@ The following modules are boundaries within one modular monolith, not independen
 | Journal | Trade records and journal entries. |
 | Portfolio | V1 virtual portfolio/accounting only; no portfolio-management features. |
 | Notification | V1 basic in-app alerts only; external channels are V2+. |
+| ProfileConfiguration | Supporting boundary for TraderProfile user context, preferences, constraints, and behavioral hypotheses, plus versioned, changeable TradingConfiguration operational assumptions/settings. |
 
 ## Cross-module rules
 
@@ -22,6 +23,11 @@ The following modules are boundaries within one modular monolith, not independen
 - Strategy consumes normalized market-data contracts, not provider-specific APIs.
 - PaperTrading remains separate from Strategy.
 - AI remains advisory and does not own deterministic risk, accounting, or trade-state logic.
+- ProfileConfiguration keeps TraderProfile separate from TradingConfiguration: profile context does not set risk authority, while versioned configuration owns changeable operational assumptions.
+
+## In-app alerts
+
+Basic in-app alerts are confirmed V1 scope. Their mechanism and triggering approach are intentionally TBD until the Solution Blueprint; do not introduce Domain Events, background queues, or other infrastructure solely to resolve them now.
 
 ## TBD before implementation design
 

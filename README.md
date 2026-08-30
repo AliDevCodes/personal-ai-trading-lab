@@ -8,6 +8,7 @@ The canonical V1 scope, exclusions, and in-app-alerts decision are in the [visio
 
 ## Documentation
 
+- Project dashboard and active guardrails: [status](docs/project/STATUS.md) and [current context](docs/project/CURRENT.md)
 - Product direction: canonical [vision and scope](docs/product/vision-and-scope.md) and [roadmap](docs/product/roadmap.md)
 - Trading: [trader profile](docs/trading/trader-profile.md), [strategy hypothesis](docs/trading/strategy-hypothesis.md), and [risk management](docs/trading/risk-management.md)
 - Architecture and delivery standards: `docs/architecture`, `docs/design`, and `docs/engineering`

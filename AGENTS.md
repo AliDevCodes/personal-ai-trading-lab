@@ -1,5 +1,32 @@
 # AI Coding Agent Rules
 
+## Mandatory repository preflight
+
+Before **any** file modification, run these commands from the current repository and verify their output:
+
+1. `git rev-parse --show-toplevel`
+2. `git remote get-url origin`
+3. `git branch --show-current`
+4. `git status --short`
+
+Expected origin: `https://github.com/AliDevCodes/personal-ai-trading-lab`
+
+If the repository identity does not match, STOP. Do not switch directories, inspect another repository, or copy files from another repository.
+
+## Delivery guardrails
+
+- Respect `docs/project/CURRENT.md` before every implementation task.
+- Work only within the approved scope of the current task.
+- Do not expand V1 scope without an explicit product decision.
+- Do not make architectural changes during unrelated feature work.
+- Do not introduce dependencies, frameworks, infrastructure, or patterns without justification.
+- Do not silently change trading rules, risk rules, accounting rules, or paper-trading assumptions.
+- Before large changes, produce a plan.
+- Keep changes focused, reviewable, and incremental; never modify unrelated files.
+- Every behavior change needs appropriate tests.
+- Update documentation when an important architectural or product decision changes.
+- Never commit or push unless the user explicitly asks.
+
 ## Scope and architecture
 
 - Build a personal AI-assisted trading laboratory as a modular monolith using Clean Architecture. Preserve explicit module boundaries and dependency direction.
