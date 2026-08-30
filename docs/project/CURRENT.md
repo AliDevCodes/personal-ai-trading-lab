@@ -2,10 +2,10 @@ Current phase:
 Scaffolding
 
 Current task:
-Finalize Slice 1
+Finalize Slice 2
 
 Allowed:
-- Verify scaffold
+- Verify test infrastructure
 - Git review
 - Documentation update
 - Commit
@@ -15,9 +15,9 @@ Not allowed:
 - AI
 - Database
 - Docker
-- React
 - Market data
 - Risk implementation
+- React before Slice 3 authorization
 
 Next gate:
-Slice 1 committed and pushed
+Slice 2 committed and pushed

@@ -5,4 +5,9 @@
     <Project Path="src/TradingLab.Domain/TradingLab.Domain.csproj" />
     <Project Path="src/TradingLab.Infrastructure/TradingLab.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TradingLab.ApiTests/TradingLab.ApiTests.csproj" />
+    <Project Path="tests/TradingLab.IntegrationTests/TradingLab.IntegrationTests.csproj" />
+    <Project Path="tests/TradingLab.UnitTests/TradingLab.UnitTests.csproj" />
+  </Folder>
 </Solution>
