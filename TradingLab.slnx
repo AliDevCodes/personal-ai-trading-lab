@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TradingLab.Api/TradingLab.Api.csproj" />
+    <Project Path="src/TradingLab.Application/TradingLab.Application.csproj" />
+    <Project Path="src/TradingLab.Domain/TradingLab.Domain.csproj" />
+    <Project Path="src/TradingLab.Infrastructure/TradingLab.Infrastructure.csproj" />
+  </Folder>
+</Solution>
