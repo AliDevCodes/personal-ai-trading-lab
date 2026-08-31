@@ -1,23 +1,23 @@
 Current phase:
-Scaffolding
+Scaffolding Complete
 
 Current task:
-Finalize Slice 2
+Finalize scaffolding checkpoint
 
 Allowed:
-- Verify test infrastructure
+- Final verification
 - Git review
 - Documentation update
 - Commit
 
 Not allowed:
 - Trading logic
-- AI
-- Database
-- Docker
-- Market data
+- AI implementation
+- Database implementation
+- Docker configuration
+- Market-data integration
 - Risk implementation
-- React before Slice 3 authorization
+- Strategy implementation
 
 Next gate:
-Slice 2 committed and pushed
+Scaffolding checkpoint committed and pushed
