@@ -99,11 +99,17 @@ namespace TradingLab.ApiTests.Market
             private readonly MarketDataResult _res;
             public FakeService(MarketDataResult res) { _res = res; }
             public Task<MarketDataResult> GetLatestAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, System.Threading.CancellationToken cancellationToken = default) => Task.FromResult(_res);
+            public Task<MarketHistoryResult> GetHistoryAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, int limit, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default)
+                => Task.FromResult(MarketHistoryResult.FromError(MarketDataError.Unknown));
         }
 
         private class ThrowingService : IMarketDataService
         {
             public Task<MarketDataResult> GetLatestAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, System.Threading.CancellationToken cancellationToken = default)
+            {
+                throw new System.InvalidOperationException("boom");
+            }
+            public Task<MarketHistoryResult> GetHistoryAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, int limit, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default)
             {
                 throw new System.InvalidOperationException("boom");
             }

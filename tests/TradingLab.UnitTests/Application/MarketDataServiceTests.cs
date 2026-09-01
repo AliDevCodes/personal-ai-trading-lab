@@ -30,6 +30,8 @@ namespace TradingLab.UnitTests.Application
             private readonly MarketDataResult _result;
             public FakeProvider(MarketDataResult result) { _result = result; }
             public Task<MarketDataResult> GetLatestAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, System.Threading.CancellationToken cancellationToken = default) => Task.FromResult(_result);
+            public Task<MarketHistoryResult> GetHistoryAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, int limit, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default)
+                => Task.FromResult(MarketHistoryResult.FromError(MarketDataError.Unknown));
         }
     }
 }

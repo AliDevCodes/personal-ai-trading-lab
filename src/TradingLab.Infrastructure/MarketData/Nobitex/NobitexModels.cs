@@ -116,6 +116,112 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
             }
         }
 
+        // Parse UDF history into multiple candles (oldest -> newest)
+        public static bool TryParseUdfHistoryToCandles(string json, Market market, Timeframe timeframe, Asset quote, out Candle[] candles)
+        {
+            candles = null!;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.ValueKind != JsonValueKind.Object) return false;
+
+                // status must be ok
+                if (root.TryGetProperty("s", out var sprop) && sprop.ValueKind == JsonValueKind.String)
+                {
+                    if (!string.Equals(sprop.GetString(), "ok", StringComparison.OrdinalIgnoreCase)) return false;
+                }
+                else if (root.TryGetProperty("status", out var statusEl) && statusEl.ValueKind == JsonValueKind.String)
+                {
+                    if (!string.Equals(statusEl.GetString(), "ok", StringComparison.OrdinalIgnoreCase)) return false;
+                }
+
+                if (!root.TryGetProperty("t", out var tArr) || tArr.ValueKind != JsonValueKind.Array) return false;
+                if (!root.TryGetProperty("o", out var oArr) || oArr.ValueKind != JsonValueKind.Array) return false;
+                if (!root.TryGetProperty("h", out var hArr) || hArr.ValueKind != JsonValueKind.Array) return false;
+                if (!root.TryGetProperty("l", out var lArr) || lArr.ValueKind != JsonValueKind.Array) return false;
+                if (!root.TryGetProperty("c", out var cArr) || cArr.ValueKind != JsonValueKind.Array) return false;
+                if (!root.TryGetProperty("v", out var vArr) || vArr.ValueKind != JsonValueKind.Array) return false;
+
+                var len = tArr.GetArrayLength();
+                if (len == 0) return false;
+                if (oArr.GetArrayLength() != len || hArr.GetArrayLength() != len || lArr.GetArrayLength() != len || cArr.GetArrayLength() != len || vArr.GetArrayLength() != len)
+                    return false;
+
+                var list = new System.Collections.Generic.List<Candle>(len);
+
+                for (var i = 0; i < len; i++)
+                {
+                    if (!TryGetDecimalValue(oArr[i], out var o)) return false;
+                    if (!TryGetDecimalValue(hArr[i], out var h)) return false;
+                    if (!TryGetDecimalValue(lArr[i], out var l)) return false;
+                    if (!TryGetDecimalValue(cArr[i], out var cval)) return false;
+                    if (!TryGetDecimalValue(vArr[i], out var v)) v = 0m;
+
+                    // timestamp
+                    DateTimeOffset ts;
+                    var tprop = tArr[i];
+                    if (tprop.ValueKind == JsonValueKind.Number && tprop.TryGetInt64(out var unix))
+                    {
+                        if (unix > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix);
+                        else ts = DateTimeOffset.FromUnixTimeSeconds(unix);
+                    }
+                    else if (tprop.ValueKind == JsonValueKind.String && long.TryParse(tprop.GetString(), out var unix2))
+                    {
+                        if (unix2 > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix2);
+                        else ts = DateTimeOffset.FromUnixTimeSeconds(unix2);
+                    }
+                    else
+                    {
+                        return false;
+                    }
+
+                    var open = new Price(o, quote);
+                    var high = new Price(h, quote);
+                    var low = new Price(l, quote);
+                    var close = new Price(cval, quote);
+
+                    // construct and validate candle
+                    Candle c;
+                    try
+                    {
+                        c = new Candle(market, timeframe, ts, open, high, low, close, v).Validate();
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+
+                    list.Add(c);
+                }
+
+                // Ensure chronological order oldest -> newest; if not monotonic, sort
+                var ordered = list;
+                bool monotonic = true;
+                for (int i = 1; i < ordered.Count; i++)
+                {
+                    if (ordered[i].IntervalStart <= ordered[i - 1].IntervalStart)
+                    {
+                        monotonic = false;
+                        break;
+                    }
+                }
+                if (!monotonic)
+                {
+                    ordered = new System.Collections.Generic.List<Candle>(list);
+                    ordered.Sort((a, b) => a.IntervalStart.CompareTo(b.IntervalStart));
+                }
+
+                candles = ordered.ToArray();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static bool TryGetDecimalValue(JsonElement el, out decimal value)
         {
             value = 0m;

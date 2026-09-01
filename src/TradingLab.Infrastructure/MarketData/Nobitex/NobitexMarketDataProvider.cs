@@ -88,6 +88,42 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
             }
         }
 
+        public async Task<MarketHistoryResult> GetHistoryAsync(Market market, Timeframe timeframe, int limit, DateTimeOffset? to = null, CancellationToken cancellationToken = default)
+        {
+            var symbol = MapMarketToSymbol(market);
+            if (symbol is null) return MarketHistoryResult.FromError(MarketDataError.NotFound);
+
+            var resolution = MapTimeframeToResolution(timeframe);
+            if (resolution is null) return MarketHistoryResult.FromError(MarketDataError.InvalidResponse);
+
+            try
+            {
+                var toUnix = (to ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds();
+                var udfUrl = new Uri(_baseUri, $"market/udf/history?symbol={symbol}&resolution={resolution}&countback={limit}&to={toUnix}");
+                var udfResp = await _httpClient.GetAsync(udfUrl, cancellationToken).ConfigureAwait(false);
+                if (!udfResp.IsSuccessStatusCode) return MarketHistoryResult.FromError(MarketDataError.ProviderUnavailable);
+                var udfContent = await udfResp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                if (!NobitexResponseMapper.TryParseUdfHistoryToCandles(udfContent, market, timeframe, market.Quote, out var candles))
+                {
+                    return MarketHistoryResult.FromError(MarketDataError.InvalidResponse);
+                }
+
+                return MarketHistoryResult.FromSuccess(candles);
+            }
+            catch (HttpRequestException)
+            {
+                return MarketHistoryResult.FromError(MarketDataError.Network);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return MarketHistoryResult.FromError(MarketDataError.Unknown);
+            }
+        }
+
         internal static string? MapMarketToSymbol(Market market)
         {
             if (market.Base.Code == "BTC" && market.Quote.Code == "USDT") return "BTCUSDT";
