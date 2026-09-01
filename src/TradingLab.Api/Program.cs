@@ -9,7 +9,7 @@ builder.Services.AddScoped<TradingLab.Application.Modules.Market.IMarketDataServ
 // Register Nobitex provider using typed HttpClient
 builder.Services.AddHttpClient<TradingLab.Application.Abstractions.MarketData.IMarketDataProvider, TradingLab.Infrastructure.MarketData.Nobitex.NobitexMarketDataProvider>(client =>
 {
-    client.BaseAddress = new System.Uri("https://api.nobitex.ir/");
+    client.BaseAddress = new System.Uri("https://apiv2.nobitex.ir/");
 });
 
 var app = builder.Build();

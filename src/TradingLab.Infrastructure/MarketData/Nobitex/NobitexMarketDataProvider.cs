@@ -15,7 +15,7 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
         public NobitexMarketDataProvider(HttpClient httpClient, string? baseUrl = null)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _baseUri = new Uri(baseUrl ?? "https://api.nobitex.ir/");
+            _baseUri = new Uri(baseUrl ?? "https://apiv2.nobitex.ir/");
         }
 
         public async Task<MarketDataResult> GetLatestAsync(Market market, Timeframe timeframe, CancellationToken cancellationToken = default)
