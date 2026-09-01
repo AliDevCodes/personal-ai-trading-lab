@@ -1,23 +1,16 @@
-Current phase:
-Scaffolding Complete
+MD-001 Phase 2 — Historical Candle Slice (ASP.NET API)
 
-Current task:
-Finalize scaffolding checkpoint
+Status: Completed and committed locally in this branch.
 
-Allowed:
-- Final verification
-- Git review
-- Documentation update
-- Commit
+What was added:
+- Endpoint: GET /api/market-data/{symbol}/history?timeframe=1h&limit=100&to=<optional-unix-seconds>
+- API DTOs: MarketHistoryDto and CandleDto
 
-Not allowed:
-- Trading logic
-- AI implementation
-- Database implementation
-- Docker configuration
-- Market-data integration
-- Risk implementation
-- Strategy implementation
+Behavior summary:
+- Supported market: BTCUSDT -> Market.BtcUsdt (unsupported -> 404)
+- Supported timeframe: 1h -> Timeframe.OneHour (unsupported -> 400)
+- limit: optional, default 100, must be 1..1000 (invalid -> 400)
+- to: optional Unix epoch seconds; invalid -> 400; omitted -> null passed to application
+- Error mapping: Network/ProviderUnavailable -> 503, InvalidResponse -> 502, NotFound -> 404, unexpected -> 500
 
-Next gate:
-Scaffolding checkpoint committed and pushed
+Verification: dotnet build and dotnet test run successfully; all API tests pass locally.

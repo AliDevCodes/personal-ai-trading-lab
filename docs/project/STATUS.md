@@ -1,32 +1,20 @@
-Current phase:
-Scaffolding Complete
+Current phase: MD-001 Historical Candle Slice
 
-Current milestone:
-Application foundation scaffolded
+Current milestone: Phase 2 complete — ASP.NET API endpoint for historical candles
 
 Completed:
-- Project foundation
-- Architecture
-- Domain model
-- Solution blueprint
-- Backend scaffold
-- Project references
-- Testing foundation
-- Test references
-- Successful backend build
-- Successful test execution
-- React/Vite client scaffold
-- Successful React build
-- Successful React dev-server run
+- Domain primitives (Market, Timeframe, Price, Candle)
+- Application service abstractions (IMarketDataService) and MarketDataService
+- Infrastructure Nobitex provider and mapping
+- API latest endpoint GET /api/market-data/{symbol}
+- API history endpoint GET /api/market-data/{symbol}/history
+- Unit and integration tests covering provider mapping and API behaviors
 
 Current task:
-Complete final scaffolding verification and commit
+- Open PR for review and integration testing (this repository contains the committed changes)
 
 Next milestone:
-First application feature
+- Integrate API history endpoint with frontend and run end-to-end verification
 
-Business logic:
-None yet
-
-Strategy:
-Still unvalidated
+Notes:
+- Domain/Application/Infrastructure production logic was not modified for this slice.
