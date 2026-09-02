@@ -237,6 +237,122 @@ namespace TradingLab.ApiTests.Market
                 => Task.FromResult(_res);
         }
 
+        private class CapturingHistoryService : IMarketDataService
+        {
+            private readonly MarketHistoryResult _res;
+            public bool Called { get; private set; }
+            public TradingLab.Domain.Market.Market? LastMarket { get; private set; }
+            public TradingLab.Domain.Market.Timeframe? LastTimeframe { get; private set; }
+            public int? LastLimit { get; private set; }
+            public System.DateTimeOffset? LastTo { get; private set; }
+
+            public CapturingHistoryService(MarketHistoryResult res)
+            {
+                _res = res;
+            }
+
+            public Task<MarketDataResult> GetLatestAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, System.Threading.CancellationToken cancellationToken = default)
+                => Task.FromResult(MarketDataResult.FromError(MarketDataError.Unknown));
+
+            public Task<MarketHistoryResult> GetHistoryAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, int limit, System.DateTimeOffset? to = null, System.Threading.CancellationToken cancellationToken = default)
+            {
+                Called = true;
+                LastMarket = market;
+                LastTimeframe = timeframe;
+                LastLimit = limit;
+                LastTo = to;
+                return Task.FromResult(_res);
+            }
+        }
+
+        [Fact]
+        public async Task History_ForwardsDefaultLimit_WhenLimitOmitted()
+        {
+            var svc = new CapturingHistoryService(MarketHistoryResult.FromSuccess(new TradingLab.Domain.Market.Candle[0]));
+            var controller = new MarketDataController(svc);
+
+            var result = await controller.History("BTCUSDT", "1h", null, null);
+
+            Assert.True(svc.Called);
+            Assert.Equal(100, svc.LastLimit);
+            Assert.Null(svc.LastTo);
+            Assert.Equal(TradingLab.Domain.Market.Market.BtcUsdt, svc.LastMarket);
+            Assert.Equal(TradingLab.Domain.Market.Timeframe.OneHour, svc.LastTimeframe);
+        }
+
+        [Fact]
+        public async Task History_ForwardsCustomLimit()
+        {
+            var svc = new CapturingHistoryService(MarketHistoryResult.FromSuccess(new TradingLab.Domain.Market.Candle[0]));
+            var controller = new MarketDataController(svc);
+
+            var result = await controller.History("BTCUSDT", "1h", 37, null);
+
+            Assert.True(svc.Called);
+            Assert.Equal(37, svc.LastLimit);
+        }
+
+        [Fact]
+        public async Task History_ForwardsTo_AsDateTimeOffset()
+        {
+            var unix = 1690000000L;
+            var svc = new CapturingHistoryService(MarketHistoryResult.FromSuccess(new TradingLab.Domain.Market.Candle[0]));
+            var controller = new MarketDataController(svc);
+
+            var result = await controller.History("BTCUSDT", "1h", 10, unix.ToString());
+
+            Assert.True(svc.Called);
+            Assert.Equal(System.DateTimeOffset.FromUnixTimeSeconds(unix), svc.LastTo);
+        }
+
+        [Fact]
+        public async Task History_InvalidLimit_DoesNotCallService()
+        {
+            var svc = new CapturingHistoryService(MarketHistoryResult.FromSuccess(new TradingLab.Domain.Market.Candle[0]));
+            var controller = new MarketDataController(svc);
+
+            // invalid limit = 0
+            var res1 = await controller.History("BTCUSDT", "1h", 0, null);
+            Assert.IsType<BadRequestResult>(res1);
+            Assert.False(svc.Called);
+
+            // invalid limit = 1001
+            var res2 = await controller.History("BTCUSDT", "1h", 1001, null);
+            Assert.IsType<BadRequestResult>(res2);
+            Assert.False(svc.Called);
+        }
+
+        [Fact]
+        public async Task History_InvalidTo_DoesNotCallService()
+        {
+            var svc = new CapturingHistoryService(MarketHistoryResult.FromSuccess(new TradingLab.Domain.Market.Candle[0]));
+            var controller = new MarketDataController(svc);
+
+            var res = await controller.History("BTCUSDT", "1h", null, "not-a-number");
+            Assert.IsType<BadRequestResult>(res);
+            Assert.False(svc.Called);
+        }
+
+        [Fact]
+        public async Task History_ReturnsMappedCandles_InSameOrder()
+        {
+            var price = new Price(100m, Asset.USDT);
+            var c1 = new Candle(TradingLab.Domain.Market.Market.BtcUsdt, TradingLab.Domain.Market.Timeframe.OneHour, new System.DateTimeOffset(2026,1,1,0,0,0, System.TimeSpan.Zero), price, price, price, price, 1.1m);
+            var c2 = new Candle(TradingLab.Domain.Market.Market.BtcUsdt, TradingLab.Domain.Market.Timeframe.OneHour, new System.DateTimeOffset(2026,1,1,1,0,0, System.TimeSpan.Zero), price, price, price, price, 2.2m);
+            var svc = new FakeHistoryService(MarketHistoryResult.FromSuccess(new[] { c1, c2 }));
+            var controller = new MarketDataController(svc);
+
+            var result = await controller.History("BTCUSDT", "1h", null, null);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var dto = Assert.IsType<TradingLab.Api.Features.MarketData.Contracts.MarketHistoryDto>(ok.Value);
+            Assert.Equal(2, dto.Candles.Length);
+            Assert.Equal(c1.IntervalStart, dto.Candles[0].IntervalStart);
+            Assert.Equal(c2.IntervalStart, dto.Candles[1].IntervalStart);
+            Assert.Equal(c1.Volume, dto.Candles[0].Volume);
+            Assert.Equal(c2.Volume, dto.Candles[1].Volume);
+        }
+
         private class ThrowingService : IMarketDataService
         {
             public Task<MarketDataResult> GetLatestAsync(TradingLab.Domain.Market.Market market, TradingLab.Domain.Market.Timeframe timeframe, System.Threading.CancellationToken cancellationToken = default)
