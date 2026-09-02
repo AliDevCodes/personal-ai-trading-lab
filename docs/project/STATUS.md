@@ -11,10 +11,23 @@ Completed:
 - Unit and integration tests covering provider mapping and API behaviors
 
 Current task:
-- Open PR for review and integration testing (this repository contains the committed changes)
 
 Next milestone:
-- Integrate API history endpoint with frontend and run end-to-end verification
+- Historical Data UI + Chart (initial: BTC/USDT 1H)
+
+Verification:
+- Historical market-data capability: COMPLETED
+- Historical API endpoint: COMPLETED and runtime-verified
+- Tests: 46/46 passing
+
+Phase status:
+- Phase 2 closed pending Git closeout (implementation present: commit 0c31a42)
+
+Details:
+- Historical market data capability: COMPLETE
+- Historical API endpoint: COMPLETE and runtime-verified
+- Tests: 46/46 passing
+- Phase 2: complete, pending Git closeout only
 
 Notes:
 - Domain/Application/Infrastructure production logic was not modified for this slice.
