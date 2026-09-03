@@ -13,4 +13,11 @@ The canonical V1 scope, exclusions, and in-app-alerts decision are in the [visio
 - Trading: [trader profile](docs/trading/trader-profile.md), [strategy hypothesis](docs/trading/strategy-hypothesis.md), and [risk management](docs/trading/risk-management.md)
 - Architecture and delivery standards: `docs/architecture`, `docs/design`, and `docs/engineering`
 
-This repository currently contains the project context pack only; no application scaffold or implementation has been created.
+Current implemented state (V1):
+- .NET backend and ASP.NET Core API (TradingLab.Api)
+- Nobitex market-data provider integration
+- Historical market-data API endpoint: GET /api/market-data/{symbol}/history
+- Automated test suites (unit, integration, API tests)
+- React + TypeScript + Vite frontend (web/trading-lab-web)
+
+See docs/project/CURRENT.md and docs/project/STATUS.md for verification details and the current checkpoint.
