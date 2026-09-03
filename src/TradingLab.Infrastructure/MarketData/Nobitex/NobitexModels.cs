@@ -53,8 +53,6 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
-                if (root.ValueKind != JsonValueKind.Object) return false;
-
                 // Some UDF responses include a status field like s: "ok" - reject non-ok
                 if (root.TryGetProperty("s", out var sprop) && sprop.ValueKind == JsonValueKind.String)
                 {
@@ -67,17 +65,7 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                     if (!string.Equals(st, "ok", StringComparison.OrdinalIgnoreCase)) return false;
                 }
 
-                if (!root.TryGetProperty("t", out var tArr) || tArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("o", out var oArr) || oArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("h", out var hArr) || hArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("l", out var lArr) || lArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("c", out var cArr) || cArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("v", out var vArr) || vArr.ValueKind != JsonValueKind.Array) return false;
-
-                var len = tArr.GetArrayLength();
-                if (len == 0) return false;
-                if (oArr.GetArrayLength() != len || hArr.GetArrayLength() != len || lArr.GetArrayLength() != len || cArr.GetArrayLength() != len || vArr.GetArrayLength() != len)
-                    return false;
+                if (!TryGetUdfArrays(root, out var tArr, out var oArr, out var hArr, out var lArr, out var cArr, out var vArr, out var len)) return false;
 
                 // take last aligned index
                 var idx = len - 1;
@@ -88,18 +76,12 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                 if (!TryGetDecimalValue(cArr[idx], out var cval)) return false;
                 if (!TryGetDecimalValue(vArr[idx], out var v)) v = 0m;
 
-                // timestamp
+                // timestamp: lenient policy preserved -- an unparsable timestamp
+                // falls back to UtcNow rather than rejecting the row
                 DateTimeOffset ts = DateTimeOffset.UtcNow;
-                var tprop = tArr[idx];
-                if (tprop.ValueKind == JsonValueKind.Number && tprop.TryGetInt64(out var unix))
+                if (TryConvertUnixTimestamp(tArr[idx], out var parsedTs))
                 {
-                    if (unix > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix);
-                    else ts = DateTimeOffset.FromUnixTimeSeconds(unix);
-                }
-                else if (tprop.ValueKind == JsonValueKind.String && long.TryParse(tprop.GetString(), out var unix2))
-                {
-                    if (unix2 > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix2);
-                    else ts = DateTimeOffset.FromUnixTimeSeconds(unix2);
+                    ts = parsedTs;
                 }
 
                 var open = new Price(o, quote);
@@ -125,8 +107,6 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
-                if (root.ValueKind != JsonValueKind.Object) return false;
-
                 // status must be ok
                 if (root.TryGetProperty("s", out var sprop) && sprop.ValueKind == JsonValueKind.String)
                 {
@@ -137,17 +117,7 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                     if (!string.Equals(statusEl.GetString(), "ok", StringComparison.OrdinalIgnoreCase)) return false;
                 }
 
-                if (!root.TryGetProperty("t", out var tArr) || tArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("o", out var oArr) || oArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("h", out var hArr) || hArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("l", out var lArr) || lArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("c", out var cArr) || cArr.ValueKind != JsonValueKind.Array) return false;
-                if (!root.TryGetProperty("v", out var vArr) || vArr.ValueKind != JsonValueKind.Array) return false;
-
-                var len = tArr.GetArrayLength();
-                if (len == 0) return false;
-                if (oArr.GetArrayLength() != len || hArr.GetArrayLength() != len || lArr.GetArrayLength() != len || cArr.GetArrayLength() != len || vArr.GetArrayLength() != len)
-                    return false;
+                if (!TryGetUdfArrays(root, out var tArr, out var oArr, out var hArr, out var lArr, out var cArr, out var vArr, out var len)) return false;
 
                 var list = new System.Collections.Generic.List<Candle>(len);
 
@@ -159,20 +129,9 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
                     if (!TryGetDecimalValue(cArr[i], out var cval)) return false;
                     if (!TryGetDecimalValue(vArr[i], out var v)) v = 0m;
 
-                    // timestamp
-                    DateTimeOffset ts;
-                    var tprop = tArr[i];
-                    if (tprop.ValueKind == JsonValueKind.Number && tprop.TryGetInt64(out var unix))
-                    {
-                        if (unix > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix);
-                        else ts = DateTimeOffset.FromUnixTimeSeconds(unix);
-                    }
-                    else if (tprop.ValueKind == JsonValueKind.String && long.TryParse(tprop.GetString(), out var unix2))
-                    {
-                        if (unix2 > 9999999999) ts = DateTimeOffset.FromUnixTimeMilliseconds(unix2);
-                        else ts = DateTimeOffset.FromUnixTimeSeconds(unix2);
-                    }
-                    else
+                    // timestamp: strict policy preserved -- an unparsable timestamp
+                    // rejects the whole payload
+                    if (!TryConvertUnixTimestamp(tArr[i], out var ts))
                     {
                         return false;
                     }
@@ -220,6 +179,60 @@ namespace TradingLab.Infrastructure.MarketData.Nobitex
             {
                 return false;
             }
+        }
+
+        // Extract the six UDF arrays (t, o, h, l, c, v) and validate that they are
+        // arrays, non-empty, and all of equal length. Pure structural validation with
+        // no semantic policy of its own.
+        private static bool TryGetUdfArrays(JsonElement root,
+            out JsonElement tArr, out JsonElement oArr, out JsonElement hArr,
+            out JsonElement lArr, out JsonElement cArr, out JsonElement vArr,
+            out int length)
+        {
+            tArr = default;
+            oArr = default;
+            hArr = default;
+            lArr = default;
+            cArr = default;
+            vArr = default;
+            length = 0;
+
+            if (root.ValueKind != JsonValueKind.Object) return false;
+
+            if (!root.TryGetProperty("t", out tArr) || tArr.ValueKind != JsonValueKind.Array) return false;
+            if (!root.TryGetProperty("o", out oArr) || oArr.ValueKind != JsonValueKind.Array) return false;
+            if (!root.TryGetProperty("h", out hArr) || hArr.ValueKind != JsonValueKind.Array) return false;
+            if (!root.TryGetProperty("l", out lArr) || lArr.ValueKind != JsonValueKind.Array) return false;
+            if (!root.TryGetProperty("c", out cArr) || cArr.ValueKind != JsonValueKind.Array) return false;
+            if (!root.TryGetProperty("v", out vArr) || vArr.ValueKind != JsonValueKind.Array) return false;
+
+            var len = tArr.GetArrayLength();
+            if (len == 0) return false;
+            if (oArr.GetArrayLength() != len || hArr.GetArrayLength() != len || lArr.GetArrayLength() != len || cArr.GetArrayLength() != len || vArr.GetArrayLength() != len)
+                return false;
+
+            length = len;
+            return true;
+        }
+
+        // Convert a UDF timestamp element (Unix seconds, or milliseconds when the
+        // value exceeds the 9999999999 threshold) to DateTimeOffset. Only reports
+        // whether the element is an interpretable integral Unix timestamp; what to
+        // do on failure (fallback vs reject) is the caller's policy.
+        private static bool TryConvertUnixTimestamp(JsonElement element, out DateTimeOffset timestamp)
+        {
+            timestamp = default;
+            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt64(out var unix))
+            {
+                timestamp = unix > 9999999999 ? DateTimeOffset.FromUnixTimeMilliseconds(unix) : DateTimeOffset.FromUnixTimeSeconds(unix);
+                return true;
+            }
+            if (element.ValueKind == JsonValueKind.String && long.TryParse(element.GetString(), out var unixAsText))
+            {
+                timestamp = unixAsText > 9999999999 ? DateTimeOffset.FromUnixTimeMilliseconds(unixAsText) : DateTimeOffset.FromUnixTimeSeconds(unixAsText);
+                return true;
+            }
+            return false;
         }
 
         private static bool TryGetDecimalValue(JsonElement el, out decimal value)
