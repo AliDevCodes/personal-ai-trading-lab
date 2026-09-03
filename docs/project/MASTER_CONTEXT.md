@@ -1,4 +1,4 @@
-# Personal AI Trading Lab — Project Master Context v1.5
+# Personal AI Trading Lab — Project Master Context v1.6
 
 ## Purpose
 
@@ -207,7 +207,7 @@ Backend:
 .NET 10 / ASP.NET Core
 
 Frontend:
-React 19 / TypeScript / Vite
+React 19 / TypeScript / Vite + Lightweight Charts 5.2.1 (candlestick charting)
 
 Planned database:
 PostgreSQL
@@ -252,6 +252,7 @@ Completed and independently/runtime verified earlier:
 - historical market-data Application/Infrastructure capability
 - host-level API verification tests (WebApplicationFactory, .NET 10 aligned)
 - neutral UDF parser consolidation (semantics preserved)
+- historical data UI + chart (Phase 3.1 — BTC/USDT 1H, Lightweight Charts 5.2.1)
 
 Real end-to-end path verified earlier:
 Browser -> Vite proxy -> ASP.NET API -> Application -> Nobitex Infrastructure -> Nobitex
@@ -261,10 +262,10 @@ The Browser successfully displayed real BTC/USDT data.
 ---
 
 ## 9. Historical API status
-Latest GitHub checkpoint (origin/main): d7fa2e4
+Latest GitHub checkpoint (origin/main): 663605b
 
 Checkpoint trail:
-79a61e2 (historical market data) -> 0c31a42 (Phase 2 implementation) -> 326ea43 (Hardening #1) -> d7fa2e4 (Hardening #2) -> 88ea064 (Hardening #3A, local only)
+79a61e2 (historical market data) -> 0c31a42 (Phase 2 implementation) -> 326ea43 (Hardening #1) -> d7fa2e4 (Hardening #2) -> 88ea064 (Hardening #3A) -> 663605b (documentation sync) -> 67dba66 (Phase 3.1 historical data UI, local only)
 
 Phase 2 implementation (MD-001 Phase 2):
 - Local implementation commit: 0c31a42
@@ -274,7 +275,7 @@ Phase 2 implementation (MD-001 Phase 2):
 Post-Phase-2 hardening (feature scope unchanged):
 - Hardening #1 — cleanup (326ea43, pushed): three template UnitTest1.cs files removed; stale README implementation-state wording corrected.
 - Hardening #2 — host-level API verification (d7fa2e4, pushed): Microsoft.AspNetCore.Mvc.Testing 10.0.11; minimal public partial Program for WebApplicationFactory; one deterministic WebApplicationFactory host test; no buffering workaround; no external network.
-- Hardening #3A — neutral UDF parser extraction (88ea064, committed locally, NOT yet pushed): semantics-neutral shared UDF array validation and Unix timestamp conversion extracted in NobitexModels.cs; divergent parser-path semantics preserved.
+- Hardening #3A — neutral UDF parser extraction (88ea064, pushed; included in checkpoint 663605b): semantics-neutral shared UDF array validation and Unix timestamp conversion extracted in NobitexModels.cs; divergent parser-path semantics preserved.
 
 Implemented endpoint:
 - GET /api/market-data/{symbol}/history?timeframe=1h&limit=100&to=<optional-unix-seconds>
@@ -293,8 +294,9 @@ Verification summary:
 - Runtime verification: GET /api/market-data/BTCUSDT/history?timeframe=1h&limit=10 returned exactly 10 candles in chronological order (oldest → newest).
 
 Phase status:
-- Phase 2: CLOSED. Post-Phase-2 hardening completed for the approved small set; publish of local commit 88ea064 remains (main ahead of origin/main by 1).
-- Next milestone: Phase 3 — Historical Data UI + Chart (initial: BTC/USDT 1H)
+- Phase 2: CLOSED. Post-Phase-2 hardening completed for the approved small set and fully pushed; main and origin/main synchronized at 663605b.
+- Phase 3.1 (Historical Data UI + Chart, BTC/USDT 1H): implemented, reviewed, committed locally at 67dba66; NOT yet pushed (origin/main still 663605b). No backend changes.
+- Next milestone: Phase 3.2 / next approved historical-data UI work — only after the current checkpoint is published
 
 Deferred engineering backlog (not current work; requires explicit approval):
 - Semantic unification of the two UDF parser paths (TryParseUdfHistory / TryParseUdfHistoryToCandles) — divergence intentionally preserved in Hardening #3A.
@@ -304,7 +306,7 @@ Deferred engineering backlog (not current work; requires explicit approval):
 ## 10. Current recovery task
 
 Immediate task:
-- Post-Phase-2 hardening (approved small set) is complete. Remaining immediate action: publish local commit 88ea064 to origin/main (main is ahead of origin/main by 1). Hardening #1 (326ea43) and #2 (d7fa2e4) are already pushed. Push happens only on explicit user request.
+- Phase 3.1 (Historical Data UI + Chart, BTC/USDT 1H) is implemented, reviewed, and committed locally at 67dba66. Pending action: standard Git push/synchronization (origin/main still at 663605b) — push happens only on explicit user request. Next milestone: Phase 3.2 / next approved historical-data UI work, only after the current checkpoint is published.
 
 Notes:
 - No destructive Git actions required. Do not perform destructive resets during handoff.
