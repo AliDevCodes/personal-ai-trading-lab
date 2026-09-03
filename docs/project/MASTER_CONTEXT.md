@@ -1,4 +1,4 @@
-# Personal AI Trading Lab — Project Master Context v1.4
+# Personal AI Trading Lab — Project Master Context v1.5
 
 ## Purpose
 
@@ -250,6 +250,8 @@ Completed and independently/runtime verified earlier:
 - real Nobitex integration
 - Vite development proxy
 - historical market-data Application/Infrastructure capability
+- host-level API verification tests (WebApplicationFactory, .NET 10 aligned)
+- neutral UDF parser consolidation (semantics preserved)
 
 Real end-to-end path verified earlier:
 Browser -> Vite proxy -> ASP.NET API -> Application -> Nobitex Infrastructure -> Nobitex
@@ -259,13 +261,20 @@ The Browser successfully displayed real BTC/USDT data.
 ---
 
 ## 9. Historical API status
-Known GitHub checkpoint:
-79a61e2
-feat: add historical market data support
+Latest GitHub checkpoint (origin/main): d7fa2e4
+
+Checkpoint trail:
+79a61e2 (historical market data) -> 0c31a42 (Phase 2 implementation) -> 326ea43 (Hardening #1) -> d7fa2e4 (Hardening #2) -> 88ea064 (Hardening #3A, local only)
 
 Phase 2 implementation (MD-001 Phase 2):
 - Local implementation commit: 0c31a42
 - Classification: Reviewed and KEEP
+- Milestone: CLOSED as a feature milestone
+
+Post-Phase-2 hardening (feature scope unchanged):
+- Hardening #1 — cleanup (326ea43, pushed): three template UnitTest1.cs files removed; stale README implementation-state wording corrected.
+- Hardening #2 — host-level API verification (d7fa2e4, pushed): Microsoft.AspNetCore.Mvc.Testing 10.0.11; minimal public partial Program for WebApplicationFactory; one deterministic WebApplicationFactory host test; no buffering workaround; no external network.
+- Hardening #3A — neutral UDF parser extraction (88ea064, committed locally, NOT yet pushed): semantics-neutral shared UDF array validation and Unix timestamp conversion extracted in NobitexModels.cs; divergent parser-path semantics preserved.
 
 Implemented endpoint:
 - GET /api/market-data/{symbol}/history?timeframe=1h&limit=100&to=<optional-unix-seconds>
@@ -280,24 +289,26 @@ Verified behavior:
 
 Verification summary:
 - Fresh build: PASS
-- Fresh tests: PASS (46/46)
-- Runtime verification: GET /api/market-data/BTCUSDT/history?timeframe=1h&limit=10 returned exactly 10 candles
-  - First candle: 2026-09-01T13:30:00+00:00
-  - Last candle:  2026-09-01T22:30:00+00:00
-  - Order: oldest -> newest
+- Tests: 44/44 passing after post-Phase-2 hardening (46/46 at Phase 2 close; template tests removed in #1, one host test added in #2)
+- Runtime verification: GET /api/market-data/BTCUSDT/history?timeframe=1h&limit=10 returned exactly 10 candles in chronological order (oldest → newest).
 
 Phase status:
-- Phase 2 is complete. Next milestone: Phase 3 — Historical Data UI + Chart
+- Phase 2: CLOSED. Post-Phase-2 hardening completed for the approved small set; publish of local commit 88ea064 remains (main ahead of origin/main by 1).
+- Next milestone: Phase 3 — Historical Data UI + Chart (initial: BTC/USDT 1H)
+
+Deferred engineering backlog (not current work; requires explicit approval):
+- Semantic unification of the two UDF parser paths (TryParseUdfHistory / TryParseUdfHistoryToCandles) — divergence intentionally preserved in Hardening #3A.
 
 ---
 
 ## 10. Current recovery task
 
 Immediate task:
-- Phase 2 is closed locally. Remaining immediate action: Git closeout (push/PR) per team workflow.
+- Post-Phase-2 hardening (approved small set) is complete. Remaining immediate action: publish local commit 88ea064 to origin/main (main is ahead of origin/main by 1). Hardening #1 (326ea43) and #2 (d7fa2e4) are already pushed. Push happens only on explicit user request.
 
 Notes:
 - No destructive Git actions required. Do not perform destructive resets during handoff.
+- Deferred engineering backlog (do not start without explicit approval): semantic unification of the two Nobitex UDF parser paths.
 
 ---
 
