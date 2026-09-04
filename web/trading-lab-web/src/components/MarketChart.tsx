@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CandlestickSeries,
   ColorType,
@@ -10,9 +10,11 @@ import type {
   DeepPartial,
   IChartApi,
   ISeriesApi,
+  MouseEventParams,
   UTCTimestamp,
 } from 'lightweight-charts'
 import type { Candle } from '../api/marketData'
+import CandleDetails from './CandleDetails'
 
 type Theme = 'light' | 'dark'
 
@@ -36,6 +38,32 @@ const priceFormatter = new Intl.NumberFormat(undefined, {
 
 function toUtcSeconds(iso: string): UTCTimestamp {
   return (Date.parse(iso) / 1000) as UTCTimestamp
+}
+
+function toTimeKey(iso: string): number {
+  return Math.floor(Date.parse(iso) / 1000)
+}
+
+/**
+ * Resolve the candle time from a chart mouse event. Prefers the candle series
+ * data (authoritative OHLCV row for the hovered/tapped bar) and falls back to
+ * the event's own `time`. Returns null when there is no meaningful bar.
+ */
+function resolveTime(
+  param: MouseEventParams,
+  series: ISeriesApi<'Candlestick'> | null,
+): number | null {
+  if (!series) return null
+  const bar = param.seriesData.get(series)
+  if (bar) {
+    if (typeof bar.time === 'number') return bar.time
+    if (typeof bar.time === 'string') return Math.floor(Date.parse(bar.time) / 1000)
+  }
+  if (param.time !== undefined) {
+    if (typeof param.time === 'number') return param.time
+    if (typeof param.time === 'string') return Math.floor(Date.parse(param.time) / 1000)
+  }
+  return null
 }
 
 function chartOptions(theme: Theme): DeepPartial<ChartOptions> {
@@ -69,6 +97,60 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
 
+  // The inspected candle is tracked by its unix-second time. The displayed
+  // candle is always derived from the CURRENT candles array, so a stale time
+  // (e.g. after a refresh) resolves to null and the placeholder returns.
+  const [inspectedTime, setInspectedTime] = useState<number | null>(null)
+
+  // When a new candle dataset arrives (refresh / new data), the inspection is
+  // reset — even if the refreshed window still contains the same timestamp.
+  // Adjusting state during render is the documented React pattern for
+  // resetting state when a prop changes (no effect, no timing workaround).
+  const [prevCandles, setPrevCandles] = useState<Candle[]>(candles)
+  if (prevCandles !== candles) {
+    setPrevCandles(candles)
+    setInspectedTime(null)
+  }
+
+  // O(1) time -> Candle lookup. Rebuilt whenever the API candles change;
+  // mirrored into a ref so the (stable) event handler can use it.
+  const candlesByTime = useMemo(() => {
+    const map = new Map<number, Candle>()
+    for (const c of candles) map.set(toTimeKey(c.intervalStart), c)
+    return map
+  }, [candles])
+  const candlesByTimeRef = useRef(candlesByTime)
+
+  // While a dataset replacement is in flight, Lightweight Charts re-emits the
+  // crosshair for the bar the pointer is still parked on, which would
+  // re-inspect and defeat the refresh reset. Library crosshair events are
+  // suppressed until real pointer input proves the user is interacting again.
+  const suppressCrosshairRef = useRef(false)
+
+  const inspectedCandle = inspectedTime === null ? null : (candlesByTime.get(inspectedTime) ?? null)
+
+  // Shared by crosshair movement (desktop hover, touch drag) and click/tap.
+  // Leaves the chart (point === undefined) or whitespace clears the inspection.
+  const handleInspect = useCallback((param: MouseEventParams) => {
+    // Ignore the synthetic crosshair event the library re-emits right after a
+    // data replacement while the pointer is still parked (see
+    // suppressCrosshairRef). Any genuine pointer input deactivates it, so
+    // subsequent events inspect normally.
+    if (suppressCrosshairRef.current) return
+
+    if (param.point === undefined) {
+      setInspectedTime(null)
+      return
+    }
+    const time = resolveTime(param, candleSeriesRef.current)
+    if (time === null || !candlesByTimeRef.current.has(time)) {
+      setInspectedTime(null)
+      return
+    }
+    // No state churn when the inspected candle has not changed.
+    setInspectedTime((prev) => (prev === time ? prev : time))
+  }, [])
+
   const [theme, setTheme] = useState<Theme>(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   )
@@ -82,11 +164,22 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Create the chart exactly once. Data and theme are applied through
-  // separate effects below, so we never leak chart instances on prop changes.
+  // Create the chart exactly once and subscribe to inspection events. Data and
+  // theme are applied through separate effects, so we never leak chart
+  // instances or duplicate subscriptions on prop changes.
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    // Any genuine pointer input means the user is interacting again, so the
+    // synthetic-event suppression is lifted. Capture phase runs before the
+    // chart's own listeners, so the very first move is never swallowed.
+    const onPointerInput = () => {
+      suppressCrosshairRef.current = false
+    }
+    container.addEventListener('pointermove', onPointerInput, true)
+    container.addEventListener('pointerdown', onPointerInput, true)
+    container.addEventListener('pointerleave', onPointerInput, true)
 
     const chart = createChart(container, chartOptions(themeRef.current))
 
@@ -108,17 +201,25 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
     // Reserve the bottom ~18% of the chart for the volume pane.
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } })
 
+    chart.subscribeCrosshairMove(handleInspect)
+    chart.subscribeClick(handleInspect)
+
     chartRef.current = chart
     candleSeriesRef.current = candleSeries
     volumeSeriesRef.current = volumeSeries
 
     return () => {
+      container.removeEventListener('pointermove', onPointerInput, true)
+      container.removeEventListener('pointerdown', onPointerInput, true)
+      container.removeEventListener('pointerleave', onPointerInput, true)
+      chart.unsubscribeCrosshairMove(handleInspect)
+      chart.unsubscribeClick(handleInspect)
       chart.remove()
       chartRef.current = null
       candleSeriesRef.current = null
       volumeSeriesRef.current = null
     }
-  }, [])
+  }, [handleInspect])
 
   // Apply theme colors on mount and whenever the OS scheme changes.
   useEffect(() => {
@@ -133,6 +234,11 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
     const candleSeries = candleSeriesRef.current
     const volumeSeries = volumeSeriesRef.current
     if (!chart || !candleSeries || !volumeSeries) return
+
+    candlesByTimeRef.current = candlesByTime
+    // Data is about to be replaced: suppress the library's crosshair
+    // re-emission (see handleInspect) until real pointer input arrives.
+    suppressCrosshairRef.current = true
 
     if (candles.length === 0) {
       candleSeries.setData([])
@@ -157,7 +263,7 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
       })),
     )
     chart.timeScale().fitContent()
-  }, [candles])
+  }, [candles, candlesByTime])
 
   // Truthful, human-readable description used as the chart's accessible name.
   // Lightweight Charts does not animate by default, so no additional
@@ -172,6 +278,7 @@ export default function MarketChart({ candles, market, timeframe }: MarketChartP
   return (
     <div className="chart">
       <div className="chart-canvas" role="img" aria-label={accessibleLabel} ref={containerRef} />
+      <CandleDetails candle={inspectedCandle} />
       <p className="chart-attribution">
         <a href="https://www.tradingview.com" target="_blank" rel="noreferrer">
           Charts by TradingView
