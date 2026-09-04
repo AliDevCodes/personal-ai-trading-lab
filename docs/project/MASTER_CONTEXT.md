@@ -207,7 +207,7 @@ Backend:
 .NET 10 / ASP.NET Core
 
 Frontend:
-React 19 / TypeScript / Vite + Lightweight Charts 5.2.1 (candlestick charting)
+React 19 / TypeScript / Vite + Lightweight Charts 5.2.1 (candlestick + volume charting, candle inspection)
 
 Planned database:
 PostgreSQL
@@ -253,6 +253,7 @@ Completed and independently/runtime verified earlier:
 - host-level API verification tests (WebApplicationFactory, .NET 10 aligned)
 - neutral UDF parser consolidation (semantics preserved)
 - historical data UI + chart (Phase 3.1 — BTC/USDT 1H, Lightweight Charts 5.2.1)
+- candle inspection / chart interaction (Phase 3.2 — BTC/USDT 1H: desktop crosshair hover, mobile touch, refresh inspection reset)
 
 Real end-to-end path verified earlier:
 Browser -> Vite proxy -> ASP.NET API -> Application -> Nobitex Infrastructure -> Nobitex
@@ -262,10 +263,10 @@ The Browser successfully displayed real BTC/USDT data.
 ---
 
 ## 9. Historical API status
-Latest GitHub checkpoint (origin/main): 663605b
+Latest GitHub checkpoint (origin/main): cd2891c
 
 Checkpoint trail:
-79a61e2 (historical market data) -> 0c31a42 (Phase 2 implementation) -> 326ea43 (Hardening #1) -> d7fa2e4 (Hardening #2) -> 88ea064 (Hardening #3A) -> 663605b (documentation sync) -> 67dba66 (Phase 3.1 historical data UI, local only)
+79a61e2 (historical market data) -> 0c31a42 (Phase 2 implementation) -> 326ea43 (Hardening #1) -> d7fa2e4 (Hardening #2) -> 88ea064 (Hardening #3A) -> 663605b (documentation sync) -> 67dba66 (Phase 3.1 historical data UI) -> cd2891c (Phase 3.1 checkpoint close) -> 094e489 (Phase 3.2 candle inspection, local only — not yet pushed)
 
 Phase 2 implementation (MD-001 Phase 2):
 - Local implementation commit: 0c31a42
@@ -294,9 +295,9 @@ Verification summary:
 - Runtime verification: GET /api/market-data/BTCUSDT/history?timeframe=1h&limit=10 returned exactly 10 candles in chronological order (oldest → newest).
 
 Phase status:
-- Phase 2: CLOSED. Post-Phase-2 hardening completed for the approved small set and fully pushed; main and origin/main synchronized at 663605b.
-- Phase 3.1 (Historical Data UI + Chart, BTC/USDT 1H): implemented, reviewed, committed locally at 67dba66; NOT yet pushed (origin/main still 663605b). No backend changes.
-- Next milestone: Phase 3.2 / next approved historical-data UI work — only after the current checkpoint is published
+- Phase 2: CLOSED. Post-Phase-2 hardening completed for the approved small set and fully pushed.
+- Phase 3 (Historical Data UI + Chart, BTC/USDT 1H): CLOSED. Phase 3.1 committed and published (67dba66, checkpoint close cd2891c; origin/main at cd2891c). Phase 3.2 candle inspection (desktop hover, mobile touch, refresh inspection reset) browser-verified and committed locally at 094e489 — NOT yet pushed. No backend changes in Phase 3.
+- Next milestone: next approved post-Phase-3 roadmap item — only after 094e489 is published. No Phase 3 expansion (realtime, PostgreSQL, additional markets/timeframes) without explicit approval.
 
 Deferred engineering backlog (not current work; requires explicit approval):
 - Semantic unification of the two UDF parser paths (TryParseUdfHistory / TryParseUdfHistoryToCandles) — divergence intentionally preserved in Hardening #3A.
@@ -306,7 +307,7 @@ Deferred engineering backlog (not current work; requires explicit approval):
 ## 10. Current recovery task
 
 Immediate task:
-- Phase 3.1 (Historical Data UI + Chart, BTC/USDT 1H) is implemented, reviewed, and committed locally at 67dba66. Pending action: standard Git push/synchronization (origin/main still at 663605b) — push happens only on explicit user request. Next milestone: Phase 3.2 / next approved historical-data UI work, only after the current checkpoint is published.
+- Phase 3 (Historical Data UI + Chart, BTC/USDT 1H) is CLOSED: Phase 3.1 committed and published (67dba66, cd2891c; origin/main at cd2891c). Phase 3.2 candle inspection is committed locally at 094e489 — NOT yet pushed. Pending action: standard Git push of 094e489 — push happens only on explicit user request. Next milestone: next approved post-Phase-3 roadmap item, only after 094e489 is published.
 
 Notes:
 - No destructive Git actions required. Do not perform destructive resets during handoff.
@@ -336,6 +337,8 @@ The first chart slice should stay narrow:
 - 1H
 - historical candles
 - minimal loading/empty/error states
+
+Phase 3 (historical chart + candle inspection) is closed with that narrow scope; no expansion (realtime, PostgreSQL, additional markets/timeframes, indicators, etc.) without explicit approval.
 
 Do not jump prematurely to a large dashboard, many markets, broad indicators, AI trading authority, or live execution.
 
